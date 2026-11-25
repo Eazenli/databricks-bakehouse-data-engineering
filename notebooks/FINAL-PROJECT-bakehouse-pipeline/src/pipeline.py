@@ -4,6 +4,22 @@ from pyspark.sql import functions as F
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType, TimestampType
 from datetime import datetime
+from src.ingestion import ingest_bronze_fact_table_inc
+
+from src.transformation import (
+    standardize_transactions,
+    enrich_with_franchises,
+    build_daily_sales_franchise_metrics
+)
+
+from src.quality import (
+    check_global_quality,
+    validate_customers,
+    validate_franchises,
+    validate_transactions,
+    split_valid_invalid,
+    check_silver_conflict
+)
 
 ### AUDIT ###
 AUDIT_SCHEMA = StructType([
@@ -81,7 +97,7 @@ def get_next_run_id(spark:SparkSession, audit_df: str) -> int:
     if last_run_id is None:
         return 1
     else:
-        return last_run_id + 1                                                                                 
+        return last_run_id +1                                                                                 
 
 
 # Apply insert-only MERGE to Silver layer
@@ -120,14 +136,15 @@ def process_batch(
     spark: SparkSession, 
     batch_df:DataFrame, 
     batch_id: str, 
-    config:PipelineConfig) -> None:
+    config:"PipelineConfig") -> None:
 
     # 1.New execution for new run_id 
-    run_id = get_next_run_id(config.pipeline_audit)
+    run_id = get_next_run_id(spark, config.pipeline_audit)
     print(f"Starting {batch_id} - run_id={run_id}")
 
     # 2. Start audit 
     start_audit(
+        spark=spark,
         run_id=run_id,
         batch_id=batch_id,
         save_as=config.pipeline_audit
@@ -146,8 +163,8 @@ def process_batch(
         )
         # 4. Read Bronze
         bronze_run_df = (
-        spark.read.table(config.bronze_transactions)
-        .filter(F.col("_run_id") == run_id)
+            spark.read.table(config.bronze_transactions)
+            .filter(F.col("_run_id") == run_id)
         )
 
         # 5. Silver : standarization
@@ -181,7 +198,7 @@ def process_batch(
             df=valid_transa_df,
             silver_table=config.silver_transactions
         )
-        write_rejects(df=invalid_transa_df, save_as=config.silver_invalid_transactions)
+        write_rejects(df=invalid_transa_df, target_table=config.silver_invalid_transactions)
 
         # 11. Build + write Gold
         silver_transa_df = spark.read.table(config.silver_transactions)
@@ -204,7 +221,8 @@ def process_batch(
         removed_duplicates = quality["removed_duplicates"]
 
         end_audit(
-        audit_table=pipeline_audit, 
+        spark=spark,
+        audit_table=config.pipeline_audit, 
         run_id=run_id, 
         received_rows=received_rows,
         valid_rows=valid_rows,
@@ -223,7 +241,8 @@ def process_batch(
     except Exception as e:
 
             fail_audit(
-                audit_table=pipeline_audit,
+                spark=spark,
+                audit_table=config.pipeline_audit,
                 run_id=run_id
             )
 

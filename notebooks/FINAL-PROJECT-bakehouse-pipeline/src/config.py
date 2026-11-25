@@ -52,7 +52,7 @@ class PipelineConfig:
     @property
     def pipeline_audit(self) -> str:
         return f"{self.catalog}.{self.schema}.pipeline_audit"
-
+    
 
 config = PipelineConfig()
 

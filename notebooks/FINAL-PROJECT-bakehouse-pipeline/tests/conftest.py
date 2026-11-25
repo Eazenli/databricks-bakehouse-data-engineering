@@ -6,15 +6,21 @@ from pyspark.sql import SparkSession
 
 @pytest.fixture(scope="session")
 def spark():
-    spark_session = SparkSession.getActiveSession()
+    active_session = SparkSession.getActiveSession()
 
-    if spark_session is None:
-        raise RuntimeError(
-            "No active SparkSession. "
-            "Run the tests from a Databricks notebook attached to compute."
-        )
+    if active_session is not None:
+        yield active_session
+        return
 
-    return spark_session
+    local_spark = (
+        SparkSession.builder
+        .master("local[2]")
+        .appName("bakehouse-ci-tests")
+        .getOrCreate()
+    )
+
+    yield local_spark
+    local_spark.stop()
 
 
 @pytest.fixture

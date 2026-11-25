@@ -236,7 +236,7 @@ def check_silver_conflict(spark: SparkSession, incoming_df: DataFrame, silver_ta
     if conflict_df.count()>0 :
         raise ValueError(f"Conflicting business data found for existing {key}")
 
-def check_idempotenc_after_replay(
+def check_idempotence_after_replay(
     before_df: DataFrame,
     after_df: DataFrame,
     key: str | list[str],
