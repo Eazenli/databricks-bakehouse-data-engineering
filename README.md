@@ -67,12 +67,12 @@ The project is developed incrementally through hands-on exercises in **Databrick
 - Apply replay-safe processing techniques to prevent duplicate records when pipelines are rerun.
 - Inspect Spark execution plans to understand query execution and identify potential optimizations.
 
-#### Stage 5 – Final Project Review and Refactoring *(In Progress)*
+#### Stage 5 – Final Project Review and Refactoring (for more details, please read README.md in FINAL_PROJECT)
 
-- Review and consolidate the transformations and validation logic developed in previous stages.
-- Refactor reusable functions to improve code clarity, consistency, and maintainability.
-- Reorganize notebooks and processing steps into a coherent, end-to-end data pipeline.
-- Document the overall architecture.
+- Consolidate and refactor the PySpark ingestion, transformation, data quality, and pipeline logic into reusable Python modules, and organize the project into a maintainable structure.
+- Implement unit tests with pytest to validate data transformations, deduplication, and data quality rules and set up continuous integration (CI) with GitHub Actions to execute PySpark unit tests automatically.
+- Orchestrate the end-to-end data pipeline using Databricks Lakeflow Jobs.
+- Validate incremental processing, Delta Lake MERGE idempotence, and Silver-to-Gold data consistency.
 
 
 
